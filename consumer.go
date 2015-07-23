@@ -54,12 +54,12 @@ func (c *Consumer) reportErr(err error) bool {
 }
 
 func (c *Consumer) serve(client *Client) {
-	if client.conn == nil {
+	if _, err := client.connection(); err != nil {
 		return
 	}
 
-	ch1, err1 := client.conn.Channel()
-	if c.reportErr(err1) {
+	ch1, err := client.channel()
+	if c.reportErr(err) {
 		return
 	}
 

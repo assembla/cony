@@ -59,11 +59,15 @@ func (p *Publisher) Cancel() {
 }
 
 func (p *Publisher) serve(client *Client) {
-	if client.conn == nil {
+	if _, err := client.connection(); err != nil {
 		return
 	}
 
-	ch, _ := client.conn.Channel()
+	ch, err := client.channel()
+	if err != nil {
+		return
+	}
+
 	chanErrs := make(chan *amqp.Error)
 	ch.NotifyClose(chanErrs)
 

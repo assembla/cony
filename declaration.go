@@ -15,7 +15,9 @@ func DeclareQueue(q *Queue) Declaration {
 			false,
 			nil,
 		)
+		q.l.Lock()
 		q.Name = realQ.Name
+		q.l.Unlock()
 		return err
 	}
 }
