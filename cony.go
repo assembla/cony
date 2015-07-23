@@ -1,7 +1,6 @@
 // Cony is a high-level wrapper around http://github.com/streadway/amqp library,
 // for working declaratively with AMQP. Cony will manage AMQP
 // connect/reconnect to AMQP brocker, along with recovery of consumers.
-
 package cony
 
 // Queue hold definition of AMQP queue
