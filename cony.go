@@ -1,5 +1,6 @@
 package cony
 
+// Queue hold definition of AMQP queue
 type Queue struct {
 	Name       string
 	Durable    bool
@@ -7,6 +8,7 @@ type Queue struct {
 	Exclusive  bool
 }
 
+// Exchange hold definition of AMQP exchange
 type Exchange struct {
 	Name       string
 	Kind       string
@@ -14,7 +16,7 @@ type Exchange struct {
 	AutoDelete bool
 }
 
-// Used to declare bidning between Queue and Exchange
+// Binding used to declare bidning between AMQP Queue and AMQP Exchange
 type Binding struct {
 	Queue    *Queue
 	Exchange Exchange

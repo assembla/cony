@@ -10,14 +10,17 @@ var DefaultBackoff Backoffer = BackoffPolicy{
 	[]int{0, 10, 100, 200, 500, 1000, 2000, 3000, 5000},
 }
 
+// Backoffer is interface to hold Backoff strategy
 type Backoffer interface {
 	Backoff(int) time.Duration
 }
 
+// BackoffPolicy is a default Backoffer implementation
 type BackoffPolicy struct {
 	ms []int
 }
 
+// Backoff implements Backoffer
 func (b BackoffPolicy) Backoff(n int) time.Duration {
 	if n >= len(b.ms) {
 		n = len(b.ms) - 1

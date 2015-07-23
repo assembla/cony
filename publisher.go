@@ -10,6 +10,7 @@ var (
 	_ io.Writer = &Publisher{}
 )
 
+// PublisherOpt is a functional option type for Publisher
 type PublisherOpt func(*Publisher)
 
 type publishMaybeErr struct {
@@ -17,6 +18,7 @@ type publishMaybeErr struct {
 	err chan error
 }
 
+// Publisher hold definition for AMQP publishing
 type Publisher struct {
 	exchange string
 	key      string
@@ -35,7 +37,7 @@ func (p *Publisher) Write(b []byte) (int, error) {
 	return len(b), p.Publish(pub)
 }
 
-// Use custom publishing
+// Publish used to publish custom amqp.Publishing
 func (p *Publisher) Publish(pub amqp.Publishing) error {
 	reqRepl := publishMaybeErr{
 		pub: make(chan amqp.Publishing, 2),
@@ -84,6 +86,7 @@ func (p *Publisher) serve(client *Client) {
 	}
 }
 
+// NewPublisher is a Publisher constructor
 func NewPublisher(exchange string, key string, opts ...PublisherOpt) *Publisher {
 	p := &Publisher{
 		exchange: exchange,
@@ -97,7 +100,8 @@ func NewPublisher(exchange string, key string, opts ...PublisherOpt) *Publisher 
 	return p
 }
 
-// Publisher's functional option. Provide template amqp.Publishing and save typing.
+// PublishingTemplate Publisher's functional option. Provide template
+// amqp.Publishing and save typing.
 func PublishingTemplate(t amqp.Publishing) PublisherOpt {
 	return func(p *Publisher) {
 		p.tmpl = t

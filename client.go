@@ -6,10 +6,10 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// Client's functional option type
+// ClientOpt is a Client's functional option type
 type ClientOpt func(*Client)
 
-// Main AMQP client wrapper
+// Client is a Main AMQP client wrapper
 type Client struct {
 	addr         string
 	declarations []Declaration
@@ -22,13 +22,13 @@ type Client struct {
 	attempt      int
 }
 
-// Used to declare queues/exchanges/bindings.
+// Declare used to declare queues/exchanges/bindings.
 // Declaration is saved and will be re-run every time Client gets connection
 func (c *Client) Declare(d []Declaration) {
 	c.declarations = append(c.declarations, d...)
 }
 
-// Used to declare consumers
+// Consume used to declare consumers
 func (c *Client) Consume(cons *Consumer) {
 	c.consumers[cons] = struct{}{}
 }
@@ -37,7 +37,7 @@ func (c *Client) deleteConsumer(cons *Consumer) {
 	delete(c.consumers, cons)
 }
 
-// Used to declare publishers
+// Publish used to declare publishers
 func (c *Client) Publish(pub *Publisher) {
 	c.publishers[pub] = struct{}{}
 }
@@ -46,19 +46,19 @@ func (c *Client) deletePublisher(pub *Publisher) {
 	delete(c.publishers, pub)
 }
 
-// return Connection level errors
+// Errors returns AMQP connection level errors
 func (c *Client) Errors() <-chan error {
 	return c.errs
 }
 
-// Shutdown the client
+// Close shutdown the client
 func (c *Client) Close() {
 	c.run = false
 	c.conn.Close()
 	c.conn = nil
 }
 
-// Main loop, should be run as condition for `for` with receiving from (*Client).Errors()
+// Loop should be run as condition for `for` with receiving from (*Client).Errors()
 //
 // It will manage AMQP connection, run queue and exchange declarations, consumers.
 // Will start to return false once (*Client).Close() called.
@@ -111,11 +111,11 @@ func (c *Client) Loop() bool {
 		c.reportErr(declare(ch))
 	}
 
-	for cons, _ := range c.consumers {
+	for cons := range c.consumers {
 		go cons.serve(c)
 	}
 
-	for pub, _ := range c.publishers {
+	for pub := range c.publishers {
 		go pub.serve(c)
 	}
 
@@ -133,7 +133,7 @@ func (c *Client) reportErr(err error) bool {
 	return false
 }
 
-// Initialize new Client
+// NewClient initializes new Client
 func NewClient(opts ...ClientOpt) *Client {
 	c := &Client{
 		run:          true,
@@ -149,7 +149,7 @@ func NewClient(opts ...ClientOpt) *Client {
 	return c
 }
 
-// functional option, used in `NewClient` constructor
+// URL is a functional option, used in `NewClient` constructor
 // default URL is amqp://guest:guest@localhost/
 func URL(addr string) ClientOpt {
 	return func(c *Client) {
@@ -160,6 +160,7 @@ func URL(addr string) ClientOpt {
 	}
 }
 
+// Backoff is a functional option, used to define backoff policy
 func Backoff(bo Backoffer) ClientOpt {
 	return func(c *Client) {
 		c.bo = bo

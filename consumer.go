@@ -7,9 +7,10 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// Consumer's functional option type
+// ConsumerOpt is a consumer's functional option type
 type ConsumerOpt func(*Consumer)
 
+// Consumer holds definition for AMQP consumer
 type Consumer struct {
 	q          *Queue
 	deliveries chan amqp.Delivery
@@ -22,13 +23,13 @@ type Consumer struct {
 	stop       chan struct{}
 }
 
-// Receive deliveries, shipped to this consumer
+// Deliveries return deliveries shipped to this consumer
 // this channel never closed, even on disconnects
 func (c *Consumer) Deliveries() <-chan amqp.Delivery {
 	return c.deliveries
 }
 
-// Receive channel level errors
+// Errors returns channel with AMQP channel level errors
 func (c *Consumer) Errors() <-chan error {
 	return c.errs
 }
@@ -93,7 +94,7 @@ func (c *Consumer) serve(client *Client) {
 	}
 }
 
-// Consumer's constructor
+// NewConsumer Consumer's constructor
 func NewConsumer(q *Queue, opts ...ConsumerOpt) *Consumer {
 	c := &Consumer{
 		q:          q,
@@ -107,21 +108,21 @@ func NewConsumer(q *Queue, opts ...ConsumerOpt) *Consumer {
 	return c
 }
 
-// Set Qos on channel
+// Qos on channel
 func Qos(count int) ConsumerOpt {
 	return func(c *Consumer) {
 		c.qos = count
 	}
 }
 
-// Set tag for consumer
+// Tag the consumer
 func Tag(tag string) ConsumerOpt {
 	return func(c *Consumer) {
 		c.tag = tag
 	}
 }
 
-// Set automatically generated tag like this
+// AutoTag set automatically generated tag like this
 //	fmt.Sprintf(QueueName+"-pid-%d@%s", os.Getpid(), os.Hostname())
 func AutoTag() ConsumerOpt {
 	return func(c *Consumer) {
@@ -131,21 +132,21 @@ func AutoTag() ConsumerOpt {
 	}
 }
 
-// Set this consumer in AutoAck mode
+// AutoAck set this consumer in AutoAck mode
 func AutoAck() ConsumerOpt {
 	return func(c *Consumer) {
 		c.autoAck = true
 	}
 }
 
-// Set this consumer in exclusive mode
+// Exclusive set this consumer in exclusive mode
 func Exclusive() ConsumerOpt {
 	return func(c *Consumer) {
 		c.exclusive = true
 	}
 }
 
-// Set this consumer in NoLocal mode.
+// NoLocal set this consumer in NoLocal mode.
 func NoLocal() ConsumerOpt {
 	return func(c *Consumer) {
 		c.noLocal = true
