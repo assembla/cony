@@ -1,0 +1,105 @@
+package cony
+
+import (
+	"io"
+
+	"github.com/streadway/amqp"
+)
+
+var (
+	_ io.Writer = &Publisher{}
+)
+
+type PublisherOpt func(*Publisher)
+
+type publishMaybeErr struct {
+	pub chan amqp.Publishing
+	err chan error
+}
+
+type Publisher struct {
+	exchange string
+	key      string
+	tmpl     amqp.Publishing
+	pubChan  chan publishMaybeErr
+	stop     chan struct{}
+}
+
+// Template will be used, input buffer will be added as Publishing.Body.
+// return int will always be len(b)
+//
+// Implements io.Writer
+func (p *Publisher) Write(b []byte) (int, error) {
+	pub := p.tmpl
+	pub.Body = b
+	return len(b), p.Publish(pub)
+}
+
+// Use custom publishing
+func (p *Publisher) Publish(pub amqp.Publishing) error {
+	reqRepl := publishMaybeErr{
+		pub: make(chan amqp.Publishing, 2),
+		err: make(chan error, 2),
+	}
+
+	reqRepl.pub <- pub
+	p.pubChan <- reqRepl
+	err := <-reqRepl.err
+	return err
+}
+
+// Cancel this publisher
+func (p *Publisher) Cancel() {
+	select {
+	case p.stop <- struct{}{}:
+	default:
+	}
+}
+
+func (p *Publisher) serve(client *Client) {
+	if client.conn == nil {
+		return
+	}
+
+	ch, _ := client.conn.Channel()
+	chanErrs := make(chan *amqp.Error)
+	ch.NotifyClose(chanErrs)
+
+	for {
+		select {
+		case <-p.stop:
+			client.deletePublisher(p)
+			ch.Close()
+			return
+		case <-chanErrs:
+			return
+		case envelop := <-p.pubChan:
+			msg := <-envelop.pub
+			close(envelop.pub)
+			if err := ch.Publish(p.exchange, p.key, false, false, msg); err != nil {
+				envelop.err <- err
+			}
+			close(envelop.err)
+		}
+	}
+}
+
+func NewPublisher(exchange string, key string, opts ...PublisherOpt) *Publisher {
+	p := &Publisher{
+		exchange: exchange,
+		key:      key,
+		pubChan:  make(chan publishMaybeErr),
+		stop:     make(chan struct{}, 2),
+	}
+	for _, o := range opts {
+		o(p)
+	}
+	return p
+}
+
+// Publisher's functional option. Provide template amqp.Publishing and save typing.
+func PublishingTemplate(t amqp.Publishing) PublisherOpt {
+	return func(p *Publisher) {
+		p.tmpl = t
+	}
+}
