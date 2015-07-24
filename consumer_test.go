@@ -50,6 +50,21 @@ func TestConsumer_Cancel(t *testing.T) {
 	}
 }
 
+func TestConsumer_Cancel_willNotBlock(t *testing.T) {
+	var ok bool
+	c := newTestConsumer()
+
+	go func() {
+		c.Cancel()
+		ok = true
+	}()
+
+	time.Sleep(1 * time.Microsecond) // let goroutine to work
+	if !ok {
+		t.Error("shold not block")
+	}
+}
+
 func TestConsumer_Deliveries(t *testing.T) {
 	c := newTestConsumer()
 	go func() {
