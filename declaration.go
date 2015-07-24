@@ -5,6 +5,7 @@ import "github.com/streadway/amqp"
 // Declaration is a callback type to declare AMQP queue/exchange/bidning
 type Declaration func(Declarer) error
 
+// Declarer is implemented by *amqp.Channel
 type Declarer interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
