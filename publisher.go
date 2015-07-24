@@ -1,14 +1,6 @@
 package cony
 
-import (
-	"io"
-
-	"github.com/streadway/amqp"
-)
-
-var (
-	_ io.Writer = &Publisher{}
-)
+import "github.com/streadway/amqp"
 
 // PublisherOpt is a functional option type for Publisher
 type PublisherOpt func(*Publisher)

@@ -1,3 +1,5 @@
+// +build doc
+
 package cony_test
 
 import (

@@ -3,11 +3,17 @@ package cony
 import "github.com/streadway/amqp"
 
 // Declaration is a callback type to declare AMQP queue/exchange/bidning
-type Declaration func(*amqp.Channel) error
+type Declaration func(Declarer) error
+
+type Declarer interface {
+	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
+	QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error
+}
 
 // DeclareQueue is a way to declare AMQP queue
 func DeclareQueue(q *Queue) Declaration {
-	return func(c *amqp.Channel) error {
+	return func(c Declarer) error {
 		realQ, err := c.QueueDeclare(q.Name,
 			q.Durable,
 			q.AutoDelete,
@@ -24,7 +30,7 @@ func DeclareQueue(q *Queue) Declaration {
 
 // DeclareExchange is a way to declare AMQP exchange
 func DeclareExchange(e Exchange) Declaration {
-	return func(c *amqp.Channel) error {
+	return func(c Declarer) error {
 		return c.ExchangeDeclare(e.Name,
 			e.Kind,
 			e.Durable,
@@ -38,7 +44,7 @@ func DeclareExchange(e Exchange) Declaration {
 
 // DeclareBinding is a way to declare AMQP bidning between AMQP queue and exchange
 func DeclareBinding(b Binding) Declaration {
-	return func(c *amqp.Channel) error {
+	return func(c Declarer) error {
 		return c.QueueBind(b.Queue.Name,
 			b.Key,
 			b.Exchange.Name,
