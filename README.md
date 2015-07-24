@@ -12,7 +12,7 @@ Provide a way to work with AMQP declaratively
 
 # Thread-safety
 
-Currently it's NOT thread-safe, but it's planned to be fixed.
+Cony is thread-safe as long as [streadway/amqp](https://github.com/streadway/amqp) is thread-safe. It's recommended to open AMQP channel per thread, so in case of `cony` it should be `Consumer` `Producer` per goroutine.
 
 # License
 
