@@ -2,14 +2,116 @@ package cony
 
 import (
 	"testing"
+
+	"github.com/streadway/amqp"
 )
 
-func TestNewClient(t *testing.T)      {}
-func TestClient_Declare(t *testing.T) {}
-func TestClient_Consume(t *testing.T) {}
-func TestClient_Publish(t *testing.T) {}
-func TestClient_Errors(t *testing.T)  {}
-func TestClient_Close(t *testing.T)   {}
-func TestClient_Loop(t *testing.T)    {}
-func TestURL(t *testing.T)            {}
-func TestBackoff(t *testing.T)        {}
+func TestNewClient(t *testing.T) {
+	c := NewClient(func(c *Client) {
+		c.addr = "test1"
+	})
+
+	if c.addr != "test1" {
+		t.Error("should call functional opts")
+	}
+}
+
+func TestClient_Declare(t *testing.T) {
+	c := &Client{}
+
+	if len(c.declarations) != 0 {
+		t.Error("declarations should be empty")
+	}
+
+	q := &Queue{}
+	c.Declare([]Declaration{DeclareQueue(q)})
+
+	if len(c.declarations) != 1 {
+		t.Error("declarations should have 1 declaration")
+	}
+}
+
+func TestClient_Consume(t *testing.T) {
+	c := NewClient()
+	cons := &Consumer{}
+	c.Consume(cons)
+
+	if _, ok := c.consumers[cons]; !ok {
+		t.Error("should save consumer")
+	}
+
+	c.deleteConsumer(cons)
+
+	if _, ok := c.consumers[cons]; ok {
+		t.Error("should remove consumer")
+	}
+}
+
+func TestClient_Publish(t *testing.T) {
+	c := NewClient()
+	pub := &Publisher{}
+	c.Publish(pub)
+
+	if _, ok := c.publishers[pub]; !ok {
+		t.Error("should save publisher")
+	}
+
+	c.deletePublisher(pub)
+
+	if _, ok := c.publishers[pub]; ok {
+		t.Error("should remove publisher")
+	}
+}
+
+func TestClient_Errors(t *testing.T) {
+	c := NewClient()
+	errs := c.Errors()
+
+	if errs == nil {
+		t.Error("should initialize Errors channel")
+	}
+}
+
+func TestClient_Close(t *testing.T) {
+	c := NewClient()
+	c.Close()
+
+	if c.run != noRun {
+		t.Error("should stop running")
+	}
+}
+
+func TestClient_Loop(t *testing.T) {
+	c := NewClient()
+	c.run = noRun
+
+	if c.Loop() {
+		t.Error("should not run if noRun")
+	}
+
+	// immitate connection
+	c.conn.Store(&amqp.Connection{})
+	c.run = run
+
+	if !c.Loop() {
+		t.Error("should tell loop to run")
+	}
+}
+
+func TestURL(t *testing.T) {
+	c := &Client{}
+	URL("test1")(c)
+
+	if c.addr != "test1" {
+		t.Error("should set URL")
+	}
+}
+
+func TestBackoff(t *testing.T) {
+	c := &Client{}
+	Backoff(DefaultBackoff)(c)
+
+	if c.bo == nil {
+		t.Error("should set backoff")
+	}
+}
