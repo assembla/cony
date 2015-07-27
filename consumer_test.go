@@ -56,6 +56,8 @@ func TestConsumer_Cancel_willNotBlock(t *testing.T) {
 
 	go func() {
 		c.Cancel()
+		c.Cancel()
+		c.Cancel()
 		ok = true
 	}()
 
@@ -102,6 +104,36 @@ func TestConsumer_Errors(t *testing.T) {
 		}
 	case <-time.After(1 * time.Millisecond):
 		t.Error("Errors() channel should deliver errors")
+	}
+}
+
+func TestConsumer_reportErr(t *testing.T) {
+	var (
+		okDefault, okNil bool
+	)
+
+	c := newTestConsumer()
+	testErr := errors.New("test error")
+
+	go func() {
+		for i := 0; i <= 101; i++ {
+			c.reportErr(testErr)
+		}
+		okDefault = c.reportErr(testErr)
+		okNil = !c.reportErr(nil)
+	}()
+
+	err := <-c.errs
+	if err != testErr {
+		t.Error("error should be the same")
+	}
+
+	if okDefault != true {
+		t.Error("reportErr should not block")
+	}
+
+	if okNil != true {
+		t.Error("reportErr should return false on nil error")
 	}
 }
 
