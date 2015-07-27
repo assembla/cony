@@ -3,7 +3,11 @@
 // connect/reconnect to AMQP brocker, along with recovery of consumers.
 package cony
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/streadway/amqp"
+)
 
 // Queue hold definition of AMQP queue
 type Queue struct {
@@ -28,4 +32,17 @@ type Binding struct {
 	Queue    *Queue
 	Exchange Exchange
 	Key      string
+}
+
+type mqDeleter interface {
+	deletePublisher(*Publisher)
+	deleteConsumer(*Consumer)
+}
+
+type mqChannel interface {
+	Close() error
+	Consume(string, string, bool, bool, bool, bool, amqp.Table) (<-chan amqp.Delivery, error)
+	NotifyClose(chan *amqp.Error) chan *amqp.Error
+	Publish(string, string, bool, bool, amqp.Publishing) error
+	Qos(int, int, bool) error
 }

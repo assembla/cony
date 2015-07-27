@@ -50,12 +50,7 @@ func (p *Publisher) Cancel() {
 	}
 }
 
-func (p *Publisher) serve(client *Client) {
-	ch, err := client.channel()
-	if err != nil {
-		return
-	}
-
+func (p *Publisher) serve(client mqDeleter, ch mqChannel) {
 	chanErrs := make(chan *amqp.Error)
 	ch.NotifyClose(chanErrs)
 

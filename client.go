@@ -145,11 +145,17 @@ func (c *Client) Loop() bool {
 	}
 
 	for cons := range c.consumers {
-		go cons.serve(c)
+		ch1, err := c.channel()
+		if err == nil {
+			go cons.serve(c, ch1)
+		}
 	}
 
 	for pub := range c.publishers {
-		go pub.serve(c)
+		ch1, err := c.channel()
+		if err == nil {
+			go pub.serve(c, ch1)
+		}
 	}
 
 	return true

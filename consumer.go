@@ -53,17 +53,12 @@ func (c *Consumer) reportErr(err error) bool {
 	return false
 }
 
-func (c *Consumer) serve(client *Client) {
-	ch1, err := client.channel()
-	if c.reportErr(err) {
+func (c *Consumer) serve(client mqDeleter, ch mqChannel) {
+	if c.reportErr(ch.Qos(c.qos, 0, false)) {
 		return
 	}
 
-	if c.reportErr(ch1.Qos(c.qos, 0, false)) {
-		return
-	}
-
-	deliveries, err2 := ch1.Consume(c.q.Name,
+	deliveries, err2 := ch.Consume(c.q.Name,
 		c.tag,       // consumer tag
 		c.autoAck,   // autoAck,
 		c.exclusive, // exclusive,
@@ -79,7 +74,7 @@ func (c *Consumer) serve(client *Client) {
 		select {
 		case <-c.stop:
 			client.deleteConsumer(c)
-			ch1.Close()
+			ch.Close()
 			return
 		case d, ok := <-deliveries:
 			if !ok {
