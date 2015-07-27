@@ -138,6 +138,140 @@ func TestConsumer_reportErr(t *testing.T) {
 	}
 }
 
+func TestConsumer_serve_qos(t *testing.T) {
+	var (
+		qos      int
+		qosError = errors.New("Qos")
+		runSync  = make(chan bool)
+	)
+
+	c := newTestConsumer(Qos(10))
+
+	ch1 := &mqChannelTest{
+		_Qos: func(prefetchCount int, prefetchSize int, global bool) error {
+			qos = prefetchCount
+			return qosError
+		},
+	}
+
+	go func() {
+		<-runSync
+		c.serve(nil, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	err := <-c.errs
+	<-runSync
+
+	if qos != 10 {
+		t.Error("consumer should declare qos")
+	}
+
+	if err != qosError {
+		t.Error("reported error should be qos")
+	}
+}
+
+func TestConsumer_serve_Consume(t *testing.T) {
+	var (
+		runSync      = make(chan bool)
+		consumeError = errors.New("consume error")
+	)
+
+	c := newTestConsumer()
+
+	ch1 := &mqChannelTest{
+		_Qos: func(int, int, bool) error {
+			return nil
+		},
+		_Consume: func(name string, tag string, autoAck bool, exclusive bool, noLocal bool, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error) {
+			return nil, consumeError
+		},
+	}
+
+	go func() {
+		<-runSync
+		c.serve(nil, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	err := <-c.errs
+	<-runSync
+
+	if err != consumeError {
+		t.Error("reported error should be consume")
+	}
+}
+
+func TestConsumer_serve_for(t *testing.T) {
+	var (
+		runSync    = make(chan bool)
+		deleted    bool
+		closed     bool
+		deliveries = make(chan amqp.Delivery)
+	)
+
+	c := newTestConsumer()
+	cli := &mqDeleterTest{
+		_deleteConsumer: func(*Consumer) {
+			deleted = true
+		},
+	}
+
+	ch1 := &mqChannelTest{
+		_Qos: func(int, int, bool) error {
+			return nil
+		},
+		_Consume: func(string, string, bool, bool, bool, bool, amqp.Table) (<-chan amqp.Delivery, error) {
+			return deliveries, nil
+		},
+		_Close: func() error {
+			closed = true
+			return nil
+		},
+	}
+
+	go func() {
+		<-runSync
+		c.serve(cli, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+
+	deliveries <- amqp.Delivery{Body: []byte("test1")}
+	msg := <-c.Deliveries()
+
+	go func() {
+		c.Cancel()
+	}()
+	<-runSync
+
+	if bytes.Compare(msg.Body, []byte("test1")) != 0 {
+		t.Error("should deliver correct message")
+	}
+
+	if !deleted {
+		t.Error("should delete consumer")
+	}
+
+	if !closed {
+		t.Error("should close channel")
+	}
+
+	go func() {
+		<-runSync
+		c.serve(cli, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	close(deliveries) // immitate close of amqp.Channel
+	<-runSync
+}
+
 func TestExclusive(t *testing.T) {
 	c := newTestConsumer(Exclusive())
 
