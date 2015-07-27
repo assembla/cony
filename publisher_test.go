@@ -45,6 +45,8 @@ func TestPublisher_Cancel_willNotBlock(t *testing.T) {
 
 	go func() {
 		p.Cancel()
+		p.Cancel()
+		p.Cancel()
 		ok = true
 	}()
 

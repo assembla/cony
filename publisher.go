@@ -51,10 +51,6 @@ func (p *Publisher) Cancel() {
 }
 
 func (p *Publisher) serve(client *Client) {
-	if _, err := client.connection(); err != nil {
-		return
-	}
-
 	ch, err := client.channel()
 	if err != nil {
 		return
