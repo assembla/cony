@@ -9,6 +9,7 @@ Provide a way to work with AMQP declaratively
 # Documentation
 
 [![GoDoc](https://godoc.org/github.com/assembla/cony?status.svg)](https://godoc.org/github.com/assembla/cony)
+[![Build Status](https://travis-ci.org/assembla/cony.svg)](https://travis-ci.org/assembla/cony)
 
 # Thread-safety
 
