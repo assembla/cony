@@ -85,7 +85,7 @@ func NewPublisher(exchange string, key string, opts ...PublisherOpt) *Publisher 
 		exchange: exchange,
 		key:      key,
 		pubChan:  make(chan publishMaybeErr),
-		stop:     make(chan struct{}, 2),
+		stop:     make(chan struct{}),
 	}
 	for _, o := range opts {
 		o(p)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -15,24 +14,23 @@ func TestPublisherImplements_io_Writer(t *testing.T) {
 }
 
 func TestPublisher_Cancel(t *testing.T) {
-	var stopped bool
-	done := make(chan bool)
+	var (
+		stopped bool
+		runSync = make(chan bool)
+	)
 
 	p := newTestPublisher()
 
 	go func() {
-		defer func() {
-			done <- true
-		}()
-		select {
-		case <-p.stop:
-			stopped = true
-		case <-time.After(1 * time.Millisecond):
-			return
-		}
+		<-runSync
+		<-p.stop
+		stopped = true
+		runSync <- true
 	}()
+
+	runSync <- true
 	p.Cancel()
-	<-done
+	<-runSync
 
 	if !stopped {
 		t.Error("Cancel() should send stop signal")
@@ -40,19 +38,132 @@ func TestPublisher_Cancel(t *testing.T) {
 }
 
 func TestPublisher_Cancel_willNotBlock(t *testing.T) {
-	var ok bool
+	var (
+		ok      bool
+		runSync = make(chan bool)
+	)
 	p := newTestPublisher()
 
 	go func() {
+		<-runSync
 		p.Cancel()
 		p.Cancel()
 		p.Cancel()
 		ok = true
+		runSync <- true
 	}()
 
-	time.Sleep(1 * time.Microsecond) // let goroutine to work
+	runSync <- true
+	<-runSync
 	if !ok {
 		t.Error("shold not block")
+	}
+}
+
+func TestPublisher_serve(t *testing.T) {
+	var (
+		runSync     = make(chan bool)
+		deleted     bool
+		closed      bool
+		notifyClose bool
+		testMsg     *amqp.Publishing
+	)
+
+	p := newTestPublisher()
+	cli := &mqDeleterTest{
+		_deletePublisher: func(*Publisher) {
+			deleted = true
+		},
+	}
+
+	ch1 := &mqChannelTest{
+		_Close: func() error {
+			closed = true
+			return nil
+		},
+		_NotifyClose: func(errChan chan *amqp.Error) chan *amqp.Error {
+			notifyClose = true
+			return errChan
+		},
+		_Publish: func(ex string, key string, mandatory bool, immediate bool, msg amqp.Publishing) error {
+			testMsg = &msg
+			return nil
+		},
+	}
+
+	go func() {
+		<-runSync
+		p.serve(cli, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	p.Write([]byte("test1"))
+	p.Cancel()
+	<-runSync
+
+	if !notifyClose {
+		t.Error("should register notifyClose")
+	}
+
+	if !deleted {
+		t.Error("should delete publisher")
+	}
+
+	if !closed {
+		t.Error("should close channel")
+	}
+
+	if bytes.Compare(testMsg.Body, []byte("test1")) != 0 {
+		t.Error("should publish correct messaged")
+	}
+}
+
+func TestPublisher_serve_errors(t *testing.T) {
+	var (
+		runSync          = make(chan bool)
+		testErrChan      chan *amqp.Error
+		testPublishErr   = errors.New("pub err")
+		_deletePublisher bool
+	)
+
+	p := newTestPublisher()
+	cli := &mqDeleterTest{
+		_deletePublisher: func(*Publisher) {
+			_deletePublisher = true
+		},
+	}
+
+	ch1 := &mqChannelTest{
+		_Close: func() error {
+			return nil
+		},
+		_NotifyClose: func(errChan chan *amqp.Error) chan *amqp.Error {
+			testErrChan = errChan
+			return errChan
+		},
+		_Publish: func(string, string, bool, bool, amqp.Publishing) error {
+			return testPublishErr
+		},
+	}
+
+	go func() {
+		<-runSync
+		p.serve(cli, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	_, err := p.Write([]byte("test1"))
+	close(testErrChan) // immitate amqp.Channel close
+	<-runSync
+
+	if err != testPublishErr {
+		t.Error("should return correct error")
+	}
+
+	if _deletePublisher {
+		t.Error("on errors should not delete publisher")
 	}
 }
 
