@@ -76,7 +76,7 @@ func (c *Consumer) serve(client mqDeleter, ch mqChannel) {
 			client.deleteConsumer(c)
 			ch.Close()
 			return
-		case d, ok := <-deliveries:
+		case d, ok := <-deliveries: // deliveries will be closed once channel is closed (disconnected from network)
 			if !ok {
 				return
 			}
@@ -91,7 +91,7 @@ func NewConsumer(q *Queue, opts ...ConsumerOpt) *Consumer {
 		q:          q,
 		deliveries: make(chan amqp.Delivery),
 		errs:       make(chan error, 100),
-		stop:       make(chan struct{}, 2),
+		stop:       make(chan struct{}),
 	}
 	for _, o := range opts {
 		o(c)

@@ -32,16 +32,17 @@ func TestConsumer_Cancel(t *testing.T) {
 	c := newTestConsumer()
 
 	go func() {
-		defer func() {
-			done <- true
-		}()
+		<-done
 		select {
 		case <-c.stop:
 			stopped = true
 		case <-time.After(1 * time.Millisecond):
 			return
 		}
+		done <- true
 	}()
+
+	done <- true
 	c.Cancel()
 	<-done
 
@@ -128,11 +129,11 @@ func TestConsumer_reportErr(t *testing.T) {
 		t.Error("error should be the same")
 	}
 
-	if okDefault != true {
+	if !okDefault {
 		t.Error("reportErr should not block")
 	}
 
-	if okNil != true {
+	if !okNil {
 		t.Error("reportErr should return false on nil error")
 	}
 }

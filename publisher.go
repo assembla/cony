@@ -65,7 +65,13 @@ func (p *Publisher) serve(client mqDeleter, ch mqChannel) {
 		case envelop := <-p.pubChan:
 			msg := <-envelop.pub
 			close(envelop.pub)
-			if err := ch.Publish(p.exchange, p.key, false, false, msg); err != nil {
+			if err := ch.Publish(
+				p.exchange, // exchange
+				p.key,      // key
+				false,      // mandatory
+				false,      // immediate
+				msg,        // msg amqp.Publishing
+			); err != nil {
 				envelop.err <- err
 			}
 			close(envelop.err)
