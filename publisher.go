@@ -1,6 +1,15 @@
 package cony
 
-import "github.com/streadway/amqp"
+import (
+	"errors"
+	"sync"
+
+	"github.com/streadway/amqp"
+)
+
+// ErrPublisherDead indicates that publisher was canceled, could be returned
+// from Write() and Publish() methods
+var ErrPublisherDead = errors.New("Publisher is dead")
 
 // PublisherOpt is a functional option type for Publisher
 type PublisherOpt func(*Publisher)
@@ -17,12 +26,17 @@ type Publisher struct {
 	tmpl     amqp.Publishing
 	pubChan  chan publishMaybeErr
 	stop     chan struct{}
+	dead     bool
+	m        sync.Mutex
 }
 
 // Template will be used, input buffer will be added as Publishing.Body.
 // return int will always be len(b)
 //
 // Implements io.Writer
+//
+// WARNING: this is blocking call, it will not return until connection is
+// available. The only way to stop it is to use Cancel() method.
 func (p *Publisher) Write(b []byte) (int, error) {
 	pub := p.tmpl
 	pub.Body = b
@@ -30,6 +44,9 @@ func (p *Publisher) Write(b []byte) (int, error) {
 }
 
 // Publish used to publish custom amqp.Publishing
+//
+// WARNING: this is blocking call, it will not return until connection is
+// available. The only way to stop it is to use Cancel() method.
 func (p *Publisher) Publish(pub amqp.Publishing) error {
 	reqRepl := publishMaybeErr{
 		pub: make(chan amqp.Publishing, 2),
@@ -37,16 +54,26 @@ func (p *Publisher) Publish(pub amqp.Publishing) error {
 	}
 
 	reqRepl.pub <- pub
-	p.pubChan <- reqRepl
+
+	select {
+	case <-p.stop:
+		// received stop signal
+		return ErrPublisherDead
+	case p.pubChan <- reqRepl:
+	}
+
 	err := <-reqRepl.err
 	return err
 }
 
 // Cancel this publisher
 func (p *Publisher) Cancel() {
-	select {
-	case p.stop <- struct{}{}:
-	default:
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if !p.dead {
+		close(p.stop)
+		p.dead = true
 	}
 }
 

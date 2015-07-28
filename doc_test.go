@@ -54,8 +54,9 @@ func Example() {
 	// let client know about declarations
 	client.Declare(declarations)
 
-	// let client know about consumers
+	// let client know about consumers/publishers
 	client.Consume(consumer)
+	client.Publish(publisher)
 
 	clientErrs := client.Errors()
 	deliveries := consumer.Deliveries()

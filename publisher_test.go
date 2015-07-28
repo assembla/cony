@@ -30,6 +30,10 @@ func TestPublisher_Cancel(t *testing.T) {
 
 	runSync <- true
 	p.Cancel()
+
+	// just make sure that multiple calls will not blow up
+	p.Cancel()
+	p.Cancel()
 	<-runSync
 
 	if !stopped {
