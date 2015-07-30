@@ -1,6 +1,7 @@
 package cony
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/streadway/amqp"
@@ -98,12 +99,56 @@ func TestClient_Loop(t *testing.T) {
 	}
 }
 
+func TestClient_reportErr(t *testing.T) {
+	c := NewClient()
+
+	if c.reportErr(nil) {
+		t.Error("should return false on no error")
+	}
+
+	// fill in errs buffer
+	for i := 0; i < 100; i++ {
+		c.reportErr(errors.New("test err"))
+	}
+
+	// should not block, error will be discarded
+	if !c.reportErr(errors.New("test err")) {
+		t.Error("should return true")
+	}
+}
+
+func TestClient_channel(t *testing.T) {}
+
+func TestClient_connection(t *testing.T) {
+	c := NewClient()
+
+	if _, err := c.connection(); err != ErrNoConnection {
+		t.Error("error should be", ErrNoConnection)
+	}
+
+	c.conn.Store(&amqp.Connection{})
+
+	con, err := c.connection()
+	if con == nil {
+		t.Error("should return existing connection")
+	}
+
+	if err != nil {
+		t.Error("should be no errors")
+	}
+}
+
 func TestURL(t *testing.T) {
 	c := &Client{}
 	URL("test1")(c)
 
 	if c.addr != "test1" {
 		t.Error("should set URL")
+	}
+
+	URL("")(c)
+	if c.addr != "amqp://guest:guest@localhost/" {
+		t.Error("should use default URL")
 	}
 }
 
