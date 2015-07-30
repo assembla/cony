@@ -212,6 +212,20 @@ func TestPublisher_Publish(t *testing.T) {
 	}
 }
 
+func TestPublisher_PublishWithStop(t *testing.T) {
+	msg1 := amqp.Publishing{Body: []byte("test1")}
+	p := newTestPublisher()
+
+	go func() {
+		p.Cancel()
+	}()
+
+	err := p.Publish(msg1)
+	if err != ErrPublisherDead {
+		t.Error("Publish should receive", ErrPublisherDead)
+	}
+}
+
 func TestPublisher_Write(t *testing.T) {
 	var ok bool
 	testBuf := []byte("test1")
