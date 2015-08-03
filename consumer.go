@@ -37,7 +37,9 @@ func (c *Consumer) Errors() <-chan error {
 	return c.errs
 }
 
-// Cancel this consumer
+// Cancel this consumer.
+//
+// This will CLOSE Deliveries() channel
 func (c *Consumer) Cancel() {
 	c.m.Lock()
 	defer c.m.Unlock()
