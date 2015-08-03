@@ -3,6 +3,7 @@ package cony
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/streadway/amqp"
 )
@@ -21,6 +22,8 @@ type Consumer struct {
 	exclusive  bool
 	noLocal    bool
 	stop       chan struct{}
+	dead       bool
+	m          sync.Mutex
 }
 
 // Deliveries return deliveries shipped to this consumer
@@ -36,9 +39,13 @@ func (c *Consumer) Errors() <-chan error {
 
 // Cancel this consumer
 func (c *Consumer) Cancel() {
-	select {
-	case c.stop <- struct{}{}:
-	default:
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if !c.dead {
+		close(c.deliveries)
+		close(c.stop)
+		c.dead = true
 	}
 }
 
