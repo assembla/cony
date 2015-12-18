@@ -111,11 +111,11 @@ func (c *Client) Loop() bool {
 	}
 
 	conn, err = amqp.Dial(c.addr)
-	c.conn.Store(conn)
 
 	if c.reportErr(err) {
 		return true
 	}
+	c.conn.Store(conn)
 
 	atomic.StoreInt32(&c.attempt, 0)
 
