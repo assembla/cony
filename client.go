@@ -30,7 +30,7 @@ type Client struct {
 	consumers    map[*Consumer]struct{}
 	publishers   map[*Publisher]struct{}
 	errs         chan error
-	blocking     chan *amqp.Blocking
+	blocking     chan amqp.Blocking
 	run          int32        // bool
 	conn         atomic.Value //*amqp.Connection
 	bo           Backoffer
@@ -78,7 +78,7 @@ func (c *Client) Errors() <-chan error {
 }
 
 // Blocking notifies the server's TCP flow control of the Connection
-func (c *Client) Blocking() <-chan *amqp.Blocking {
+func (c *Client) Blocking() <-chan amqp.Blocking {
 	return c.blocking
 }
 
@@ -141,7 +141,10 @@ func (c *Client) Loop() bool {
 				conn1.Close()
 			}
 		case blocking := <-chanBlocking:
-			c.reportBlocking(&blocking)
+			select {
+			case c.blocking <- blocking:
+			default:
+			}
 		}
 	}()
 
@@ -182,17 +185,6 @@ func (c *Client) reportErr(err error) bool {
 	return false
 }
 
-func (c *Client) reportBlocking(blocked *amqp.Blocking) bool {
-	if blocked != nil {
-		select {
-		case c.blocking <- blocked:
-		default:
-		}
-		return true
-	}
-	return false
-}
-
 func (c *Client) channel() (*amqp.Channel, error) {
 	conn, err := c.connection()
 	if err != nil {
@@ -219,6 +211,7 @@ func NewClient(opts ...ClientOpt) *Client {
 		consumers:    make(map[*Consumer]struct{}),
 		publishers:   make(map[*Publisher]struct{}),
 		errs:         make(chan error, 100),
+		blocking:     make(chan amqp.Blocking, 10),
 	}
 
 	for _, o := range opts {
