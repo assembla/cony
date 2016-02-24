@@ -72,12 +72,14 @@ func (c *Client) deletePublisher(pub *Publisher) {
 	delete(c.publishers, pub)
 }
 
-// Errors returns AMQP connection level errors
+// Errors returns AMQP connection level errors. Default buffer size is 100.
+// Messages will be dropped in case if receiver can't keep up
 func (c *Client) Errors() <-chan error {
 	return c.errs
 }
 
-// Blocking notifies the server's TCP flow control of the Connection
+// Blocking notifies the server's TCP flow control of the Connection. Default
+// buffer size is 10. Messages will be dropped in case if receiver can't keep up
 func (c *Client) Blocking() <-chan amqp.Blocking {
 	return c.blocking
 }
@@ -231,9 +233,29 @@ func URL(addr string) ClientOpt {
 	}
 }
 
-// Backoff is a functional option, used to define backoff policy
+// Backoff is a functional option, used to define backoff policy, used in
+// `NewClient` constructor
 func Backoff(bo Backoffer) ClientOpt {
 	return func(c *Client) {
 		c.bo = bo
+	}
+}
+
+// ErrorsChan is a functional option, used to initialize error reporting channel
+// in client code, maintaining control over buffer size. Default buffer size is
+// 100. Messages will be dropped in case if receiver can't keep up, used in
+// `NewClient` constructor
+func ErrorsChan(errChan chan error) ClientOpt {
+	return func(c *Client) {
+		c.errs = errChan
+	}
+}
+
+// BlockingChan is a functional option, used to initialize blocking reporting
+// channel in client code, maintaining control over buffering, used in
+// `NewClient` constructor
+func BlockingChan(blockingChan chan amqp.Blocking) ClientOpt {
+	return func(c *Client) {
+		c.blocking = blockingChan
 	}
 }

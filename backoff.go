@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// See: http://blog.gopheracademy.com/advent-2014/backoff/
+// DefaultBackoff See: http://blog.gopheracademy.com/advent-2014/backoff/
 var DefaultBackoff Backoffer = BackoffPolicy{
 	[]int{0, 10, 100, 200, 500, 1000, 2000, 3000, 5000},
 }
