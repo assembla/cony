@@ -1,6 +1,6 @@
 // Package cony is a high-level wrapper around http://github.com/streadway/amqp library,
 // for working declaratively with AMQP. Cony will manage AMQP
-// connect/reconnect to AMQP brocker, along with recovery of consumers.
+// connect/reconnect to AMQP broker, along with recovery of consumers.
 package cony
 
 import (
@@ -15,6 +15,7 @@ type Queue struct {
 	Durable    bool
 	AutoDelete bool
 	Exclusive  bool
+	Args       amqp.Table
 
 	l sync.Mutex
 }
@@ -25,13 +26,15 @@ type Exchange struct {
 	Kind       string
 	Durable    bool
 	AutoDelete bool
+	Args       amqp.Table
 }
 
-// Binding used to declare bidning between AMQP Queue and AMQP Exchange
+// Binding used to declare binding between AMQP Queue and AMQP Exchange
 type Binding struct {
 	Queue    *Queue
 	Exchange Exchange
 	Key      string
+	Args     amqp.Table
 }
 
 type mqDeleter interface {

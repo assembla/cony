@@ -2,8 +2,8 @@
 
 ## Basic
 
-This is the base example ment to show how to use cony.
-The producer will exit after each publish action finishes.
+This is the base example meant to show how to use cony.
+The producer will publish a message every second (or until you stop the program with CTRL-C).
 The consumer will run forever (or until you stop the program with CTRL-C).
 Both applications are CLI-based.
 
