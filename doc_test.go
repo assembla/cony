@@ -85,6 +85,16 @@ func ExampleURL() {
 	cony.NewClient(cony.URL("amqp://guest:guest@localhost/"))
 }
 
+func ExampleErrorsChan() {
+	errors := make(chan error, 100) // define custom buffer size
+	cony.NewClient(cony.ErrorsChan(errors))
+}
+
+func ExampleBlockingChan() {
+	blockings := make(chan amqp.Blocking, 100) // define custom buffer size
+	cony.NewClient(cony.BlockingChan(blockings))
+}
+
 func ExampleClient_Loop() {
 	client := cony.NewClient(cony.URL("amqp://guest:guest@localhost/"))
 
