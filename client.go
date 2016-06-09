@@ -134,20 +134,26 @@ func (c *Client) Loop() bool {
 		conn.NotifyClose(chanErr)
 		conn.NotifyBlocked(chanBlocking)
 
-		select {
-		case err1 := <-chanErr:
-			c.reportErr(err1)
-
-			if conn1 := c.conn.Load().(*amqp.Connection); conn1 != nil {
-				c.conn.Store((*amqp.Connection)(nil))
-				conn1.Close()
-			}
-		case blocking := <-chanBlocking:
+		// loop for blocking/deblocking
+		for {
 			select {
-			case c.blocking <- blocking:
-			default:
+			case err1 := <-chanErr:
+				c.reportErr(err1)
+
+				if conn1 := c.conn.Load().(*amqp.Connection); conn1 != nil {
+					c.conn.Store((*amqp.Connection)(nil))
+					conn1.Close()
+				}
+				// return from routine to launch reconnect process
+				return
+			case blocking := <-chanBlocking:
+				select {
+				case c.blocking <- blocking:
+				default:
+				}
 			}
 		}
+
 	}()
 
 	ch, err := conn.Channel()

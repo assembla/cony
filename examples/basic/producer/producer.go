@@ -6,6 +6,7 @@ import (
 
 	"github.com/assembla/cony"
 	"github.com/streadway/amqp"
+	"time"
 )
 
 var url = flag.String("url", "amqp://guest:guest@localhost/", "amqp url")
@@ -35,7 +36,7 @@ func main() {
 
 	// Declare the exchange we'll be using
 	exc := cony.Exchange{
-		Name:       "basic",
+		Name:       "myExc",
 		Kind:       "fanout",
 		AutoDelete: true,
 	}
@@ -45,38 +46,37 @@ func main() {
 
 	// Declare and register a publisher
 	// with the cony client
-	pbl := cony.NewPublisher(exc.Name, "")
+	pbl := cony.NewPublisher(exc.Name, "pubSub")
 	cli.Publish(pbl)
-
-	// Chan used for signaling when
-	// publishing has been completed
-	// so the program can exit
-	done := make(chan struct{})
-
 	// Launch a go routine and publish a message.
 	// "Publish" is a blocking method this is why it
 	// needs to be called in its own go routine.
 	//
 	go func() {
-		pbl.Publish(amqp.Publishing{
-			Body: []byte(*body),
-		})
-		// Close done to signal that the program
-		// can exit
-		close(done)
+		ticker := time.NewTicker(time.Second)
+
+		for {
+			select {
+			case <-ticker.C:
+				fmt.Printf("Client publishing\n")
+				err := pbl.Publish(amqp.Publishing{
+					Body: []byte(*body),
+				})
+				if err != nil {
+					fmt.Printf("Client publish error: %v\n", err)
+				}
+			}
+		}
 	}()
 
 	// Client loop sends out declarations(exchanges, queues, bindings
 	// etc) to the AMQP server. It also handles reconnecting.
-	// We use the done channel here to make sure our publishing is
-	// actually published before the programe exists.
-	// We then close the client to exit the Loop.
 	for cli.Loop() {
 		select {
 		case err := <-cli.Errors():
 			fmt.Printf("Client error: %v\n", err)
-		case <-done:
-			cli.Close()
+		case blocked := <-cli.Blocking():
+			fmt.Printf("Client is blocked %v\n", blocked)
 		}
 	}
 }

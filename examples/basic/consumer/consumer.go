@@ -33,16 +33,17 @@ func main() {
 	// The queue name will be supplied by the AMQP server
 	que := &cony.Queue{
 		AutoDelete: true,
+		Name:       "myQueue",
 	}
 	exc := cony.Exchange{
-		Name:       "basic",
+		Name:       "myExc",
 		Kind:       "fanout",
 		AutoDelete: true,
 	}
 	bnd := cony.Binding{
 		Queue:    que,
 		Exchange: exc,
-		Key:      "",
+		Key:      "pubSub",
 	}
 	cli.Declare([]cony.Declaration{
 		cony.DeclareQueue(que),
