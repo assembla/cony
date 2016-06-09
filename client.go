@@ -147,7 +147,10 @@ func (c *Client) Loop() bool {
 				// return from routine to launch reconnect process
 				return
 			case blocking := <-chanBlocking:
-				c.blocking <- blocking
+				select {
+				case c.blocking <- blocking:
+				default:
+				}
 			}
 		}
 
