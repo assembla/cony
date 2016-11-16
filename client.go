@@ -272,7 +272,7 @@ func BlockingChan(blockingChan chan amqp.Blocking) ClientOpt {
 	}
 }
 
-// ErrorsChan is a functional option, used to setup TLS configuration
+// TLS is a functional option, used to setup TLS configuration
 func TLS(tls *tls.Config) ClientOpt {
 	return func(c *Client) {
 		c.tlsConf = tls
