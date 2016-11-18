@@ -118,7 +118,12 @@ func (c *Client) Loop() bool {
 		time.Sleep(c.bo.Backoff(int(c.attempt)))
 		atomic.AddInt32(&c.attempt, 1)
 	}
-	
+
+	// set default Heartbeat to 10 seconds like in original amqp.Dial
+	if c.config.Heartbeat == 0 {
+		c.config.Heartbeat = 10 * time.Second
+	}
+
 	conn, err = amqp.DialConfig(c.addr, c.config)
 
 	if c.reportErr(err) {
