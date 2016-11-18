@@ -1,7 +1,6 @@
 package cony
 
 import (
-	"crypto/tls"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -37,7 +36,7 @@ type Client struct {
 	bo           Backoffer
 	attempt      int32
 	l            sync.Mutex
-	tlsConf      *tls.Config
+	config       amqp.Config
 }
 
 // Declare used to declare queues/exchanges/bindings.
@@ -120,11 +119,12 @@ func (c *Client) Loop() bool {
 		atomic.AddInt32(&c.attempt, 1)
 	}
 
-	if c.tlsConf != nil {
-		conn, err = amqp.DialTLS(c.addr, c.tlsConf)
-	} else {
-		conn, err = amqp.Dial(c.addr)
+	if c.config == nil {
+		c.config = amqp.Config{
+			Heartbeat: 10 * time.Second,
+		}
 	}
+	conn, err = amqp.DialConfig(c.addr, c.config)
 
 	if c.reportErr(err) {
 		return true
@@ -272,9 +272,9 @@ func BlockingChan(blockingChan chan amqp.Blocking) ClientOpt {
 	}
 }
 
-// TLS is a functional option, used to setup TLS configuration
-func TLS(tls *tls.Config) ClientOpt {
+// Config is a functional option, used to setup extended amqp configuration
+func Config(config amqp.Config) ClientOpt {
 	return func(c *Client) {
-		c.tlsConf = tls
+		c.config = config
 	}
 }
