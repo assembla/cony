@@ -118,12 +118,7 @@ func (c *Client) Loop() bool {
 		time.Sleep(c.bo.Backoff(int(c.attempt)))
 		atomic.AddInt32(&c.attempt, 1)
 	}
-
-	if c.config == nil {
-		c.config = amqp.Config{
-			Heartbeat: 10 * time.Second,
-		}
-	}
+	
 	conn, err = amqp.DialConfig(c.addr, c.config)
 
 	if c.reportErr(err) {
