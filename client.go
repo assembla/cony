@@ -36,6 +36,7 @@ type Client struct {
 	bo           Backoffer
 	attempt      int32
 	l            sync.Mutex
+	config       amqp.Config
 }
 
 // Declare used to declare queues/exchanges/bindings.
@@ -118,7 +119,12 @@ func (c *Client) Loop() bool {
 		atomic.AddInt32(&c.attempt, 1)
 	}
 
-	conn, err = amqp.Dial(c.addr)
+	// set default Heartbeat to 10 seconds like in original amqp.Dial
+	if c.config.Heartbeat == 0 {
+		c.config.Heartbeat = 10 * time.Second
+	}
+
+	conn, err = amqp.DialConfig(c.addr, c.config)
 
 	if c.reportErr(err) {
 		return true
@@ -263,5 +269,12 @@ func ErrorsChan(errChan chan error) ClientOpt {
 func BlockingChan(blockingChan chan amqp.Blocking) ClientOpt {
 	return func(c *Client) {
 		c.blocking = blockingChan
+	}
+}
+
+// Config is a functional option, used to setup extended amqp configuration
+func Config(config amqp.Config) ClientOpt {
+	return func(c *Client) {
+		c.config = config
 	}
 }
