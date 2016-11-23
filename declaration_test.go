@@ -7,45 +7,60 @@ import (
 )
 
 type testDeclarer struct {
-	_QueueDeclare    func() (amqp.Queue, error)
+	_QueueDeclare    func(string) (amqp.Queue, error)
 	_ExchangeDeclare func() error
 	_QueueBind       func() error
 }
 
-func (td *testDeclarer) QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
-	return td._QueueDeclare()
+func (td *testDeclarer) QueueDeclare(name string, durable, autoDelete,
+	exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
+	return td._QueueDeclare(name)
 }
 
-func (td *testDeclarer) ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error {
+func (td *testDeclarer) ExchangeDeclare(name, kind string, durable, autoDelete,
+	internal, noWait bool, args amqp.Table) error {
 	return td._ExchangeDeclare()
 }
 
-func (td *testDeclarer) QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error {
+func (td *testDeclarer) QueueBind(name, key, exchange string, noWait bool,
+	args amqp.Table) error {
 	return td._QueueBind()
 }
 
 func TestDeclareQueue(t *testing.T) {
-	var ok bool
+	var (
+		callOK, nameOK bool
+	)
 
 	q := &Queue{
 		Name: "Q1",
 	}
 
 	td := &testDeclarer{
-		_QueueDeclare: func() (amqp.Queue, error) {
-			ok = true
+		_QueueDeclare: func(name string) (amqp.Queue, error) {
+			callOK = true
+			if name == "Q1" {
+				nameOK = true
+			}
 			return amqp.Queue{Name: "Q1_REAL"}, nil
 		},
 	}
 
-	DeclareQueue(q)(td)
+	testDec := DeclareQueue(q)
+	testDec(td)
 
-	if !ok {
+	if !callOK {
 		t.Error("DeclareQueue() should call declarer.QueueDeclare()")
 	}
 
 	if q.Name != "Q1_REAL" {
 		t.Error("DeclareQueue() should update queue name from AMQP reply")
+	}
+
+	// call it another time (like reconnect event happened)
+	testDec(td)
+	if !nameOK {
+		t.Error("queue name should be preserved")
 	}
 }
 
