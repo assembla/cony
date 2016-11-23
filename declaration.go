@@ -14,7 +14,9 @@ type Declarer interface {
 
 // DeclareQueue is a way to declare AMQP queue
 func DeclareQueue(q *Queue) Declaration {
+	name := q.Name
 	return func(c Declarer) error {
+		q.Name = name
 		realQ, err := c.QueueDeclare(q.Name,
 			q.Durable,
 			q.AutoDelete,
