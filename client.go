@@ -45,6 +45,11 @@ func (c *Client) Declare(d []Declaration) {
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.declarations = append(c.declarations, d...)
+	if ch, err := c.channel(); err == nil {
+		for _, declare := range d {
+			declare(ch)
+		}
+	}
 }
 
 // Consume used to declare consumers
@@ -52,6 +57,9 @@ func (c *Client) Consume(cons *Consumer) {
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.consumers[cons] = struct{}{}
+	if ch, err := c.channel(); err == nil {
+		go cons.serve(c, ch)
+	}
 }
 
 func (c *Client) deleteConsumer(cons *Consumer) {
@@ -65,6 +73,9 @@ func (c *Client) Publish(pub *Publisher) {
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.publishers[pub] = struct{}{}
+	if ch, err := c.channel(); err == nil {
+		go pub.serve(c, ch)
+	}
 }
 
 func (c *Client) deletePublisher(pub *Publisher) {
