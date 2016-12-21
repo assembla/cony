@@ -66,11 +66,13 @@ func TestPublisher_Cancel_willNotBlock(t *testing.T) {
 
 func TestPublisher_serve(t *testing.T) {
 	var (
-		runSync     = make(chan bool)
-		deleted     bool
-		closed      bool
-		notifyClose bool
-		testMsg     *amqp.Publishing
+		runSync      = make(chan bool)
+		deleted      bool
+		closed       bool
+		notifyClose  bool
+		exchangeName string
+		routingKey   string
+		testMsg      *amqp.Publishing
 	)
 
 	p := newTestPublisher()
@@ -90,6 +92,8 @@ func TestPublisher_serve(t *testing.T) {
 			return errChan
 		},
 		_Publish: func(ex string, key string, mandatory bool, immediate bool, msg amqp.Publishing) error {
+			exchangeName = ex
+			routingKey = key
 			testMsg = &msg
 			return nil
 		},
@@ -116,6 +120,85 @@ func TestPublisher_serve(t *testing.T) {
 
 	if !closed {
 		t.Error("should close channel")
+	}
+
+	if exchangeName != "exchange.name" {
+		t.Error("should set correct routing key")
+	}
+
+	if routingKey != "routing.key" {
+		t.Error("should set correct routing key")
+	}
+
+	if bytes.Compare(testMsg.Body, []byte("test1")) != 0 {
+		t.Error("should publish correct messaged")
+	}
+}
+
+func TestPublisher_serve_customRoutingKey(t *testing.T) {
+	var (
+		runSync      = make(chan bool)
+		deleted      bool
+		closed       bool
+		notifyClose  bool
+		exchangeName string
+		routingKey   string
+		testMsg      *amqp.Publishing
+	)
+
+	p := newTestPublisher()
+	cli := &mqDeleterTest{
+		_deletePublisher: func(*Publisher) {
+			deleted = true
+		},
+	}
+
+	ch1 := &mqChannelTest{
+		_Close: func() error {
+			closed = true
+			return nil
+		},
+		_NotifyClose: func(errChan chan *amqp.Error) chan *amqp.Error {
+			notifyClose = true
+			return errChan
+		},
+		_Publish: func(ex string, key string, mandatory bool, immediate bool, msg amqp.Publishing) error {
+			exchangeName = ex
+			routingKey = key
+			testMsg = &msg
+			return nil
+		},
+	}
+
+	go func() {
+		<-runSync
+		p.serve(cli, ch1)
+		runSync <- true
+	}()
+
+	runSync <- true
+	p.PublishWithRoutingKey(amqp.Publishing{Body: []byte("test1")}, "my.routing.key")
+	p.Cancel()
+	<-runSync
+
+	if !notifyClose {
+		t.Error("should register notifyClose")
+	}
+
+	if !deleted {
+		t.Error("should delete publisher")
+	}
+
+	if !closed {
+		t.Error("should close channel")
+	}
+
+	if exchangeName != "exchange.name" {
+		t.Error("should set correct routing key")
+	}
+
+	if routingKey != "my.routing.key" {
+		t.Error("should set correct routing key")
 	}
 
 	if bytes.Compare(testMsg.Body, []byte("test1")) != 0 {
@@ -270,5 +353,5 @@ func TestPublishingTemplate(t *testing.T) {
 }
 
 func newTestPublisher(opts ...PublisherOpt) *Publisher {
-	return NewPublisher("", "", opts...)
+	return NewPublisher("exchange.name", "routing.key", opts...)
 }
