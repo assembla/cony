@@ -17,6 +17,7 @@ type PublisherOpt func(*Publisher)
 type publishMaybeErr struct {
 	pub chan amqp.Publishing
 	err chan error
+	key string
 }
 
 // Publisher hold definition for AMQP publishing
@@ -43,14 +44,15 @@ func (p *Publisher) Write(b []byte) (int, error) {
 	return len(b), p.Publish(pub)
 }
 
-// Publish used to publish custom amqp.Publishing
+// PublishWithRoutingKey used to publish custom amqp.Publishing and routing key
 //
 // WARNING: this is blocking call, it will not return until connection is
 // available. The only way to stop it is to use Cancel() method.
-func (p *Publisher) Publish(pub amqp.Publishing) error {
+func (p *Publisher) PublishWithRoutingKey(pub amqp.Publishing, key string) error {
 	reqRepl := publishMaybeErr{
 		pub: make(chan amqp.Publishing, 2),
 		err: make(chan error, 2),
+		key: key,
 	}
 
 	reqRepl.pub <- pub
@@ -64,6 +66,14 @@ func (p *Publisher) Publish(pub amqp.Publishing) error {
 
 	err := <-reqRepl.err
 	return err
+}
+
+// Publish used to publish custom amqp.Publishing
+//
+// WARNING: this is blocking call, it will not return until connection is
+// available. The only way to stop it is to use Cancel() method.
+func (p *Publisher) Publish(pub amqp.Publishing) error {
+	return p.PublishWithRoutingKey(pub, p.key)
 }
 
 // Cancel this publisher
@@ -93,11 +103,11 @@ func (p *Publisher) serve(client mqDeleter, ch mqChannel) {
 			msg := <-envelop.pub
 			close(envelop.pub)
 			if err := ch.Publish(
-				p.exchange, // exchange
-				p.key,      // key
-				false,      // mandatory
-				false,      // immediate
-				msg,        // msg amqp.Publishing
+				p.exchange,  // exchange
+				envelop.key, // key
+				false,       // mandatory
+				false,       // immediate
+				msg,         // msg amqp.Publishing
 			); err != nil {
 				envelop.err <- err
 			}
