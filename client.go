@@ -84,6 +84,25 @@ func (c *Client) deletePublisher(pub *Publisher) {
 	delete(c.publishers, pub)
 }
 
+// QueueInspect returns information about a queue, including number
+// of messages and consumers.
+func (c *Client) QueueInspect(name string) (*amqp.Queue, error) {
+	conn, _ := c.conn.Load().(*amqp.Connection)
+	if conn == nil {
+		return nil, ErrNoConnection
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+	defer ch.Close()
+	state, err := ch.QueueInspect(name)
+	if err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
 // Errors returns AMQP connection level errors. Default buffer size is 100.
 // Messages will be dropped in case if receiver can't keep up
 func (c *Client) Errors() <-chan error {
