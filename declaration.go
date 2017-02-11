@@ -8,7 +8,9 @@ type Declaration func(Declarer) error
 // Declarer is implemented by *amqp.Channel
 type Declarer interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	QueueDeclarePassive(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
+	ExchangeDeclarePassive(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
 	QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error
 }
 
@@ -31,10 +33,43 @@ func DeclareQueue(q *Queue) Declaration {
 	}
 }
 
+// DeclareQueuePassive is a way to declare AMQP queue
+func DeclareQueuePassive(q *Queue) Declaration {
+	name := q.Name
+	return func(c Declarer) error {
+		q.Name = name
+		realQ, err := c.QueueDeclarePassive(q.Name,
+			q.Durable,
+			q.AutoDelete,
+			q.Exclusive,
+			false,
+			q.Args,
+		)
+		q.l.Lock()
+		q.Name = realQ.Name
+		q.l.Unlock()
+		return err
+	}
+}
+
 // DeclareExchange is a way to declare AMQP exchange
 func DeclareExchange(e Exchange) Declaration {
 	return func(c Declarer) error {
 		return c.ExchangeDeclare(e.Name,
+			e.Kind,
+			e.Durable,
+			e.AutoDelete,
+			false,
+			false,
+			e.Args,
+		)
+	}
+}
+
+// DeclareExchange is a way to declare AMQP exchange
+func DeclareExchangePassive(e Exchange) Declaration {
+	return func(c Declarer) error {
+		return c.ExchangeDeclarePassive(e.Name,
 			e.Kind,
 			e.Durable,
 			e.AutoDelete,
