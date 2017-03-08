@@ -1,6 +1,10 @@
 package cony
 
-import "github.com/streadway/amqp"
+import (
+	"errors"
+
+	"github.com/streadway/amqp"
+)
 
 // Declaration is a callback type to declare AMQP queue/exchange/binding
 type Declaration func(Declarer) error
@@ -8,10 +12,14 @@ type Declaration func(Declarer) error
 // Declarer is implemented by *amqp.Channel
 type Declarer interface {
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
-	QueueDeclarePassive(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
-	ExchangeDeclarePassive(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
 	QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error
+}
+
+// DeclarerPassive is implemented by *amqp.Channel
+type DeclarerPassive interface {
+	QueueDeclarePassive(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	ExchangeDeclarePassive(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
 }
 
 // DeclareQueue is a way to declare AMQP queue
@@ -37,8 +45,13 @@ func DeclareQueue(q *Queue) Declaration {
 func DeclareQueuePassive(q *Queue) Declaration {
 	name := q.Name
 	return func(c Declarer) error {
+		cp, found := c.(DeclarerPassive)
+		if !found {
+			return errors.New("Type not found.")
+		}
+
 		q.Name = name
-		realQ, err := c.QueueDeclarePassive(q.Name,
+		realQ, err := cp.QueueDeclarePassive(q.Name,
 			q.Durable,
 			q.AutoDelete,
 			q.Exclusive,
@@ -69,7 +82,12 @@ func DeclareExchange(e Exchange) Declaration {
 // DeclareExchange is a way to declare AMQP exchange
 func DeclareExchangePassive(e Exchange) Declaration {
 	return func(c Declarer) error {
-		return c.ExchangeDeclarePassive(e.Name,
+		cp, found := c.(DeclarerPassive)
+		if !found {
+			return errors.New("Type not found.")
+		}
+
+		return cp.ExchangeDeclarePassive(e.Name,
 			e.Kind,
 			e.Durable,
 			e.AutoDelete,
