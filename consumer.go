@@ -49,6 +49,7 @@ func (c *Consumer) Cancel() {
 		close(c.deliveries)
 		close(c.stop)
 		c.dead = true
+		log.Printf("Consumer canceled %v\n", c.q.Name)
 	}
 }
 

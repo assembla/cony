@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/streadway/amqp"
+	"log"
 )
 
 // ErrPublisherDead indicates that publisher was canceled, could be returned
@@ -84,6 +85,7 @@ func (p *Publisher) Cancel() {
 	if !p.dead {
 		close(p.stop)
 		p.dead = true
+		log.Printf("Publisher canceled %v %v\n", p.exchange, p.key)
 	}
 }
 
@@ -96,8 +98,10 @@ func (p *Publisher) serve(client mqDeleter, ch mqChannel) {
 		case <-p.stop:
 			client.deletePublisher(p)
 			ch.Close()
+			log.Printf("Closed channel for publisher %v %v\n", p.exchange, p.key)
 			return
 		case <-chanErrs:
+			log.Printf("Publisher closed due to error %v %v\n", p.exchange, p.key)
 			return
 		case envelop := <-p.pubChan:
 			msg := <-envelop.pub
