@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 	"log"
 )
 
