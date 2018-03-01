@@ -5,8 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/streadway/amqp"
 	"log"
+
+	"github.com/LIVEauctioneers/amqp"
 )
 
 // ConsumerOpt is a consumer's functional option type

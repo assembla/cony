@@ -3,7 +3,7 @@ package cony
 import (
 	"testing"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 type testDeclarer struct {

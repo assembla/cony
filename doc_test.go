@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/assembla/cony"
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
+	"github.com/LIVEauctioneers/cony"
 )
 
 func Example() {

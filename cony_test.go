@@ -1,6 +1,6 @@
 package cony
 
-import "github.com/streadway/amqp"
+import "github.com/LIVEauctioneers/amqp"
 
 type mqDeleterTest struct {
 	_deletePublisher func(*Publisher)
