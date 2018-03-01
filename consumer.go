@@ -5,7 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/streadway/amqp"
+	"log"
+
+	"github.com/LIVEauctioneers/amqp"
 )
 
 // ConsumerOpt is a consumer's functional option type
@@ -48,6 +50,7 @@ func (c *Consumer) Cancel() {
 		close(c.deliveries)
 		close(c.stop)
 		c.dead = true
+		log.Printf("Consumer canceled %v\n", c.q.Name)
 	}
 }
 
@@ -84,9 +87,11 @@ func (c *Consumer) serve(client mqDeleter, ch mqChannel) {
 		case <-c.stop:
 			client.deleteConsumer(c)
 			ch.Close()
+			log.Printf("Closed channel for consumer %v\n", c.q.Name)
 			return
 		case d, ok := <-deliveries: // deliveries will be closed once channel is closed (disconnected from network)
 			if !ok {
+				log.Printf("Deliveries channel for consumer %v is closed. Returning from c.serve.\n", c.q.Name)
 				return
 			}
 			c.deliveries <- d

@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/assembla/cony"
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
+	"github.com/LIVEauctioneers/cony"
 )
 
 var port = flag.Int("port", 3000, "listening port")
