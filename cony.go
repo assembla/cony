@@ -6,7 +6,7 @@ package cony
 import (
 	"sync"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 // Queue hold definition of AMQP queue

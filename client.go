@@ -2,11 +2,12 @@ package cony
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 const (
@@ -59,6 +60,9 @@ func (c *Client) Consume(cons *Consumer) {
 	c.consumers[cons] = struct{}{}
 	if ch, err := c.channel(); err == nil {
 		go cons.serve(c, ch)
+	} else {
+		// if errr it doesn't connect, log fix, do things
+		log.Printf("Error! Consume from cony library - '%s'", err.Error())
 	}
 }
 

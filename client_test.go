@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 func TestNewClient(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 func TestPublisherImplements_io_Writer(t *testing.T) {

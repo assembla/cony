@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/streadway/amqp"
+	"github.com/LIVEauctioneers/amqp"
 )
 
 func TestAutoAck(t *testing.T) {
