@@ -5,8 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/LIVEauctioneers/amqp"
 	"log"
+
+	"github.com/LIVEauctioneers/amqp"
 )
 
 // ConsumerOpt is a consumer's functional option type
@@ -25,6 +26,10 @@ type Consumer struct {
 	stop       chan struct{}
 	dead       bool
 	m          sync.Mutex
+}
+
+func (c *Consumer) GetCopyOfQueue() Queue {
+	return *c.q
 }
 
 // Deliveries return deliveries shipped to this consumer
