@@ -69,13 +69,15 @@ func (c *Client) deleteConsumer(cons *Consumer) {
 }
 
 // Publish used to declare publishers
-func (c *Client) Publish(pub *Publisher) {
+func (c *Client) Publish(pub *Publisher) error {
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.publishers[pub] = struct{}{}
-	if ch, err := c.channel(); err == nil {
+	ch, err := c.channel()
+	if err == nil {
 		go pub.serve(c, ch)
 	}
+	return err
 }
 
 func (c *Client) deletePublisher(pub *Publisher) {
