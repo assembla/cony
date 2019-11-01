@@ -289,3 +289,8 @@ func Config(config amqp.Config) ClientOpt {
 		c.config = config
 	}
 }
+
+// 获取当前失败次数
+func (c *Client) GetAttempt() int32 {
+	return c.attempt
+}
