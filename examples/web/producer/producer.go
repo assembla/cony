@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/assembla/cony"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var port = flag.Int("port", 3000, "listening port")

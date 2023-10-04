@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func TestNewClient(t *testing.T) {

@@ -2,11 +2,10 @@ package cony
 
 import (
 	"errors"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/streadway/amqp"
 )
 
 const (
@@ -32,7 +31,7 @@ type Client struct {
 	errs         chan error
 	blocking     chan amqp.Blocking
 	run          int32        // bool
-	conn         atomic.Value //*amqp.Connection
+	conn         atomic.Value // *amqp.Connection
 	bo           Backoffer
 	attempt      int32
 	l            sync.Mutex

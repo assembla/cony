@@ -1,6 +1,6 @@
 package cony
 
-import "github.com/streadway/amqp"
+import amqp "github.com/rabbitmq/amqp091-go"
 
 // Declaration is a callback type to declare AMQP queue/exchange/binding
 type Declaration func(Declarer) error
