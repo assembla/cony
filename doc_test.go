@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/assembla/cony"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func Example() {

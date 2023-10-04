@@ -3,7 +3,7 @@ package cony
 import (
 	"testing"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type testDeclarer struct {

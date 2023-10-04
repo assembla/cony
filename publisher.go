@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // ErrPublisherDead indicates that publisher was canceled, could be returned
