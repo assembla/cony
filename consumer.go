@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // ConsumerOpt is a consumer's functional option type
